@@ -1,7 +1,6 @@
 import request from 'supertest';
 import app from '../src/index';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import mongoose from 'mongoose';
 import SensorData from '../src/models/SensorData';
 
 describe('Database Routes', () => {
@@ -9,9 +8,6 @@ describe('Database Routes', () => {
     let createdDataId: string;
 
     beforeAll(async () => {
-        // Attendre que la connexion DB soit établie
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         // Nettoyer les données de test existantes
         await SensorData.deleteMany({ userId: testUserId });
     });
@@ -19,7 +15,6 @@ describe('Database Routes', () => {
     afterAll(async () => {
         // Nettoyer après les tests
         await SensorData.deleteMany({ userId: testUserId });
-        await mongoose.connection.close();
     });
 
     describe('POST /api/db/store', () => {

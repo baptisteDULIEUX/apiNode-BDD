@@ -1,6 +1,6 @@
 import request from 'supertest'
 import app from '../src/index'
-import {describe, it, expect, afterAll} from 'vitest'
+import {describe, it, expect} from 'vitest'
 
 describe('GET /ping', () => {
   it('should return pong', async () => {
@@ -10,6 +10,3 @@ describe('GET /ping', () => {
   })
 })
 
-afterAll(() => {
-  console.log("Tests completed.")
-})

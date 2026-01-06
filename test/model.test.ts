@@ -1,12 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import mongoose from 'mongoose';
+import { describe, it, expect, afterAll } from 'vitest';
 import SensorData from '../src/models/SensorData';
 
 describe('SensorData Model', () => {
-    beforeAll(async () => {
-        // Attendre que la connexion DB soit établie
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    });
 
     afterAll(async () => {
         await SensorData.deleteMany({ userId: 'model-test-user' });

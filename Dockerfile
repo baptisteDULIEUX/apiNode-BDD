@@ -50,7 +50,7 @@ CMD ["sh", "-c", "pnpm run build && node dist/index.js"]
 
 # Étape 4 : image pour tests (CI/CD)
 FROM node:22-alpine AS test
-ENV NODE_ENV=development
+ENV NODE_ENV=test
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable

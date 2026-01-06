@@ -5,7 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "vitest"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "NODE_ENV=development node dist/index.js",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "body-parser": "^2.2.0",

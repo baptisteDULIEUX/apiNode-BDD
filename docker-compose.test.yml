@@ -19,8 +19,8 @@ services:
     depends_on:
       - mongo-test
     environment:
-      NODE_ENV: development
-      MONGO_URI: mongodb://mongo-test:27017/testdb
+      NODE_ENV: test
+      MONGODB_URI: mongodb://mongo-test:27017/testdb
 
 volumes:
   mongo_data_test:

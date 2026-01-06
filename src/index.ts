@@ -14,7 +14,10 @@ app.use(express.json());
 app.use('/api/test', testRoute);
 app.use('/api/db', dbRoute);
 
-connectDB();
+// Ne connecter à MongoDB que si on n'est pas en mode test
+if (process.env.NODE_ENV !== 'test') {
+    connectDB();
+}
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

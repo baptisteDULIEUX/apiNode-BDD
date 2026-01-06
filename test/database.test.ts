@@ -1,15 +1,8 @@
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
-import connectDB from '../src/database';
 
 describe('Database Connection', () => {
-    afterAll(async () => {
-        await mongoose.connection.close();
-    });
-
-    it('should connect to MongoDB successfully', async () => {
-        await connectDB();
-
+    it('should be connected to MongoDB', () => {
         expect(mongoose.connection.readyState).toBe(1); // 1 = connected
         expect(mongoose.connection.name).toBeDefined();
     });
