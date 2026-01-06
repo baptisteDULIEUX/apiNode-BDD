@@ -16,3 +16,11 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
+/*
+2 accélérometres -> HashMap<String, Double>
+1 capteur cardiaque -> HashMap<String, Double>
+1 thermometre -> HashMap<String, Double>
++ temps de réaction -> List<Double>
++ données utilisateur
+ */

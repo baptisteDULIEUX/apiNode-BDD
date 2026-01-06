@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: mongo-dev
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: samsoul
+    volumes:
+      - mongo_data:/data/db
+
+  api:
+    build:
+      context: .
+      target: development
+    container_name: api-dev
+    depends_on:
+      - mongo
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      MONGO_URI: mongodb://mongo:27017/samsoul
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+
+volumes:
+  mongo_data:

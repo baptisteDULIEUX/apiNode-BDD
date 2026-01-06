@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  mongo-test:
+    image: mongo:7
+    container_name: mongo-test
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: testdb
+    volumes:
+      - mongo_data_test:/data/db
+
+  api-test:
+    build:
+      context: .
+      target: test
+    container_name: api-test
+    depends_on:
+      - mongo-test
+    environment:
+      NODE_ENV: development
+      MONGO_URI: mongodb://mongo-test:27017/testdb
+
+volumes:
+  mongo_data_test:
+
