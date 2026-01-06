@@ -6,20 +6,51 @@
 
 **Problème** : Le fichier `pnpm-lock.yaml` n'est pas copié dans l'image Docker.
 
+**Causes possibles** :
+1. ❌ Le fichier est dans `.gitignore` et n'est pas commité
+2. ❌ Le fichier n'existe pas dans le projet
+3. ❌ Le `.dockerignore` bloque le fichier
+
 **Solution** :
-1. Vérifier que `pnpm-lock.yaml` existe à la racine du projet
-2. Vérifier que le `.dockerignore` ne bloque pas `pnpm-lock.yaml`
-3. Dans le Dockerfile, s'assurer que la copie est explicite :
+
+1. **Vérifier le .gitignore** :
+   ```bash
+   # Vérifier si pnpm-lock.yaml est ignoré
+   cat .gitignore | grep pnpm-lock.yaml
+   ```
+   
+   Si la ligne existe, **la supprimer** ! Le lockfile DOIT être versionné :
+   ```gitignore
+   # ❌ NE PAS FAIRE :
+   pnpm-lock.yaml
+   
+   # ✅ Le lockfile doit être commité
+   ```
+
+2. **Générer le lockfile si nécessaire** :
+   ```bash
+   pnpm install
+   ```
+
+3. **Commiter le fichier** :
+   ```bash
+   git add pnpm-lock.yaml
+   git commit -m "chore: add pnpm-lock.yaml to version control"
+   git push
+   ```
+
+4. **Vérifier le Dockerfile** (copie explicite) :
    ```dockerfile
    COPY package.json ./
    COPY pnpm-lock.yaml ./
    ```
    **❌ Ne pas utiliser** : `COPY pnpm-lock.yaml* ./` (le wildcard peut échouer)
 
-4. Si le fichier n'existe pas, le générer :
-   ```bash
-   pnpm install
-   ```
+**Pourquoi versionner le lockfile ?**
+- ✅ Garantit les mêmes versions partout (dev, CI/CD, prod)
+- ✅ Builds reproductibles
+- ✅ Évite les surprises en CI/CD
+- ✅ Requis pour `--frozen-lockfile`
 
 ---
 
