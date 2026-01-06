@@ -2,6 +2,27 @@
 
 ## Problèmes courants et solutions
 
+### ❌ "ERR_PNPM_NO_LOCKFILE Cannot install with frozen-lockfile"
+
+**Problème** : Le fichier `pnpm-lock.yaml` n'est pas copié dans l'image Docker.
+
+**Solution** :
+1. Vérifier que `pnpm-lock.yaml` existe à la racine du projet
+2. Vérifier que le `.dockerignore` ne bloque pas `pnpm-lock.yaml`
+3. Dans le Dockerfile, s'assurer que la copie est explicite :
+   ```dockerfile
+   COPY package.json ./
+   COPY pnpm-lock.yaml ./
+   ```
+   **❌ Ne pas utiliser** : `COPY pnpm-lock.yaml* ./` (le wildcard peut échouer)
+
+4. Si le fichier n'existe pas, le générer :
+   ```bash
+   pnpm install
+   ```
+
+---
+
 ### ❌ "Port 27017 already in use"
 
 **Problème** : MongoDB est déjà en cours d'exécution sur votre machine.

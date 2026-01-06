@@ -7,7 +7,8 @@ RUN corepack enable
 WORKDIR /app
 
 # Copie des fichiers de config et install des dépendances
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Copie du code source et build
@@ -24,7 +25,8 @@ RUN corepack enable
 WORKDIR /app
 
 COPY --from=builder /app/dist ./dist
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
 CMD ["node", "dist/index.js"]
@@ -38,7 +40,8 @@ RUN corepack enable
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
@@ -54,7 +57,8 @@ RUN corepack enable
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
