@@ -23,6 +23,7 @@ services:
     environment:
       NODE_ENV: development
       MONGO_URI: mongodb://mongo:27017/samsoul
+      JWT_SECRET: dev-secret-key-change-in-production
     volumes:
       - ./src:/app/src
       - ./package.json:/app/package.json

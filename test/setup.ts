@@ -6,7 +6,7 @@ dotenv.config();
 
 beforeAll(async () => {
     try {
-        const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/samsoul-test';
+        const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/samsoul-test';
 
         // Fermer toute connexion existante
         if (mongoose.connection.readyState !== 0) {

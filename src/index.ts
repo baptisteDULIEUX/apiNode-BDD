@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 
 import testRoute from './testRoute';
 import dbRoute from './dbRoute';
+import authRoutes from './routes/auth.routes';
 import connectDB from './database';
 
 dotenv.config();
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use('/api/test', testRoute);
 app.use('/api/db', dbRoute);
+app.use('/api/auth', authRoutes);
 
 // Ne connecter à MongoDB que si on n'est pas en mode test
 if (process.env.NODE_ENV !== 'test') {
