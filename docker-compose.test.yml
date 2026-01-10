@@ -10,6 +10,12 @@ services:
       MONGO_INITDB_DATABASE: testdb
     volumes:
       - mongo_data_test:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   api-test:
     build:
@@ -17,10 +23,12 @@ services:
       target: test
     container_name: api-test
     depends_on:
-      - mongo-test
+      mongo-test:
+        condition: service_healthy
     environment:
       NODE_ENV: test
-      MONGODB_URI: mongodb://mongo-test:27017/testdb
+      MONGO_URI: mongodb://mongo-test:27017/samsoul-test
+      JWT_SECRET: test-jwt-secret-for-docker-testing
 
 volumes:
   mongo_data_test:

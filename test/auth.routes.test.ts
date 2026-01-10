@@ -336,7 +336,7 @@ describe('Auth Routes', () => {
                 });
 
             // Wait a bit to ensure different iat (issued at) timestamp
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 2000));
 
             const response2 = await request(app)
                 .post('/api/auth/login')

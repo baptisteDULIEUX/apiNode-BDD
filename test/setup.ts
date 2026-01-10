@@ -7,6 +7,7 @@ dotenv.config();
 beforeAll(async () => {
     try {
         const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/samsoul-test';
+        console.log('🔗 Attempting MongoDB connection to:', mongoURI);
 
         // Fermer toute connexion existante
         if (mongoose.connection.readyState !== 0) {
@@ -14,9 +15,9 @@ beforeAll(async () => {
         }
 
         await mongoose.connect(mongoURI);
-        console.log('MongoDB connected for tests');
+        console.log('✅ MongoDB connected for tests');
     } catch (error) {
-        console.error('MongoDB connection error in tests:', error);
+        console.error('❌ MongoDB connection error in tests:', error);
         throw error;
     }
 });

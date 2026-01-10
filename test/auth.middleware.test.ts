@@ -172,11 +172,8 @@ describe('Auth Middleware', () => {
             const expiredToken = jwt.sign(
                 { userId: testUserId.toString() },
                 jwtSecret,
-                { expiresIn: '0s' } // Already expired
+                { expiresIn: '-1s' } // Expired 1 second ago
             );
-
-            // Wait a moment to ensure expiration
-            await new Promise((resolve) => setTimeout(resolve, 100));
 
             const req = {
                 headers: {
@@ -291,9 +288,27 @@ describe('Auth Middleware', () => {
 
     describe('User Object', () => {
         it('should not include password in user object', async () => {
+            // Ensure user still exists in DB
+            const userExists = await User.findById(testUserId);
+            if (!userExists) {
+                // Recreate user if it was deleted
+                const user = await User.create({
+                    _id: testUserId,
+                    email: 'middleware@example.com',
+                    password: 'password123',
+                    name: 'Middleware Test',
+                });
+            }
+
+            // Generate fresh token to ensure user exists
+            const jwtSecret = process.env.JWT_SECRET || 'test-secret';
+            const freshToken = jwt.sign({ userId: testUserId.toString() }, jwtSecret, {
+                expiresIn: '7d',
+            });
+
             const req = {
                 headers: {
-                    authorization: `Bearer ${validToken}`,
+                    authorization: `Bearer ${freshToken}`,
                 },
             } as AuthRequest;
 
@@ -307,9 +322,27 @@ describe('Auth Middleware', () => {
         });
 
         it('should include all other user fields', async () => {
+            // Ensure user still exists in DB
+            const userExists = await User.findById(testUserId);
+            if (!userExists) {
+                // Recreate user if it was deleted
+                await User.create({
+                    _id: testUserId,
+                    email: 'middleware@example.com',
+                    password: 'password123',
+                    name: 'Middleware Test',
+                });
+            }
+
+            // Generate fresh token to ensure user exists
+            const jwtSecret = process.env.JWT_SECRET || 'test-secret';
+            const freshToken = jwt.sign({ userId: testUserId.toString() }, jwtSecret, {
+                expiresIn: '7d',
+            });
+
             const req = {
                 headers: {
-                    authorization: `Bearer ${validToken}`,
+                    authorization: `Bearer ${freshToken}`,
                 },
             } as AuthRequest;
 
