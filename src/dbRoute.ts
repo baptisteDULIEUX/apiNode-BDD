@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import SensorData from './models/SensorData';
+import User from "./models/User";
 
 const router = express.Router();
 
@@ -133,48 +134,181 @@ router.get('/user/:userId/range', async (req: Request, res: Response) => {
 });
 
 // Récupérer les dernières données d'un utilisateur
-router.get('/user/:userId/latest', async (req: Request, res: Response) => {
+router.post('/user/:userId/macs', async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
+        const { MACs } = req.body;
 
-        const data = await SensorData.findOne({ userId }).sort({ timestamp: -1 });
-
-        if (!data) {
-            return res.status(404).json({
+        // Validation du format
+        if (!Array.isArray(MACs) || MACs.some(mac => typeof mac !== 'string')) {
+            return res.status(400).json({
                 success: false,
-                message: 'No data found for this user'
+                message: 'The list of MACs must be an array of strings'
             });
         }
 
-        res.status(200).json({
+        const updatedUser = await User.findByIdAndUpdate(
+          userId,
+          { $addToSet: { MACAddresses: { $each: MACs } } }, // $each est correct ici
+          { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User does not exist'
+            });
+        }
+
+        return res.status(200).json({
             success: true,
-            data
+            message: 'MAC addresses added successfully',
+            data: updatedUser
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: 'Error retrieving latest data',
+            message: 'Error adding MAC addresses',
             error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
 
 // Supprimer les données d'un utilisateur
-router.delete('/user/:userId', async (req: Request, res: Response) => {
+router.delete('/user/:userId/macs', async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
+        const { MACs } = req.body;
 
-        const result = await SensorData.deleteMany({ userId });
+        // Validation de sécurité pour le tableau
+        if (!Array.isArray(MACs)) {
+            return res.status(400).json({
+                success: false,
+                message: 'The list of MACs must be an array'
+            });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+          userId,
+          { $pullAll: { MACAddresses: MACs } },
+          { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User does not exist'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'MAC addresses removed successfully',
+            data: updatedUser
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error removing MAC addresses',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+
+// Ajout d'adresses MAC aux utilisateurs
+router.post('/user/:userId/macs', async (req: Request, res: Response) => {
+    const { userId } = req.params;
+
+    const { MACs } = req.body;
+
+    if (!Array.isArray(MACs) || MACs.some(mac => typeof mac !== 'string')) {
+        return res.status(400).json({
+            success: false,
+            message: 'the list of MACs must be an array of strings'
+        });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        return res.status(400).json({
+            success: false,
+            message: 'User does not exist'
+        })
+    }
+
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { $addToSet: { MACAddresses: { $each: MACs } } },
+            { new: true }
+        );
 
         res.status(200).json({
             success: true,
-            message: 'Data deleted successfully',
-            deletedCount: result.deletedCount
+            message: 'MAC addresses added successfully',
+            data: updatedUser
         });
-    } catch (error) {
+    } catch (e) {
         res.status(500).json({
             success: false,
             message: 'Error deleting data',
+        })
+    }
+})
+
+// suppression d'une ou plusieurs adresses MAC d'un utilisateur
+router.delete('/user/:userId/macs', async (req: Request, res: Response) => {
+    const { userId } = req.params;
+
+    const { MACs } = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $pull: { MACAddresses: { $each: MACs } } },
+      { new: true }
+    )
+
+    if (!updatedUser) {
+        return res.status(400).json({
+            success: false,
+            message: 'User does not exist'
+        })
+    }
+
+    res.status(200).json({
+        success: true,
+        message: 'MAC deleted successfully',
+        data: updatedUser
+    })
+})
+
+// retourner tous les sensors d'un utilisateur
+router.get('/user/:userId/sensors', async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User does not exist'
+            });
+        }
+
+        const MACs = user.MACAddresses || [];
+
+        const sensors = await SensorData.find({ MACAddress: { $in: MACs } }).sort({ timestamp: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: sensors.length,
+            data: sensors
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching sensor data',
             error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
