@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/store', async (req: Request, res: Response) => {
     try {
         const {
-            userId,
+            macAddress, // Reçu du client (souvent en camelCase)
             accelerometer1,
             accelerometer2,
             heartRate,
@@ -16,27 +16,62 @@ router.post('/store', async (req: Request, res: Response) => {
             userData
         } = req.body;
 
-        const sensorData = new SensorData({
-            userId,
-            accelerometer1: new Map(Object.entries(accelerometer1 || {})),
-            accelerometer2: new Map(Object.entries(accelerometer2 || {})),
-            heartRate: new Map(Object.entries(heartRate || {})),
-            temperature: new Map(Object.entries(temperature || {})),
-            reactionTimes: reactionTimes || [],
-            userData: new Map(Object.entries(userData || {}))
-        });
+        const targetMac = macAddress || '00:00:00:00:00:00';
+        const existingData = await SensorData.findOne({ MACAddress: targetMac }).sort({ timestamp: -1 });
 
-        await sensorData.save();
+        if (existingData) {
+            // --- MODE MISE À JOUR ---
 
-        res.status(201).json({
-            success: true,
-            message: 'Data stored successfully',
-            data: sensorData
-        });
+            // Liste des champs
+            const mapFields = ['accelerometer1', 'accelerometer2', 'heartRate', 'temperature', 'userData'] as const;
+
+            for (const field of mapFields) {
+                const newDataForField = req.body[field];
+                if (newDataForField) {
+                    // fusion des données, champ existant + nouveau
+                    Object.entries(newDataForField).forEach(([key, val]) => {
+                        existingData[field].set(key, val as number);
+                    });
+                }
+            }
+            if (req.body.reactionTimes) {
+                existingData.reactionTimes.push(...req.body.reactionTimes);
+            }
+
+            existingData.timestamp = new Date();
+
+            await existingData.save();
+
+            return res.status(200).json({
+                success: true,
+                message: 'Sensor data updated successfully',
+                data: existingData
+            });
+        } else {
+            // --- MODE CRÉATION ---
+            const sensorData = new SensorData({
+                MACAddress: targetMac,
+                accelerometer1: new Map(Object.entries(accelerometer1 || {})),
+                accelerometer2: new Map(Object.entries(accelerometer2 || {})),
+                heartRate: new Map(Object.entries(heartRate || {})),
+                temperature: new Map(Object.entries(temperature || {})),
+                reactionTimes: reactionTimes || [],
+                userData: new Map(Object.entries(userData || {}))
+            });
+
+            await sensorData.save();
+
+            return res.status(201).json({
+                success: true,
+                message: 'Sensor data created successfully',
+                data: sensorData
+            });
+        }
+
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: 'Error storing data',
+            message: 'Error processing sensor data',
             error: error instanceof Error ? error.message : 'Unknown error'
         });
     }

@@ -8,6 +8,7 @@ export interface IUser extends Document {
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    MACAddresses: string[];
     comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -32,6 +33,10 @@ const userSchema = new Schema<IUser>(
             required: [true, 'Name is required'],
             trim: true,
         },
+        MACAddresses: {
+            type: [String],
+            required: false,
+        }
     },
     {
         timestamps: true,

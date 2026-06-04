@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ISensorData extends Document {
-    userId: string;
+    MACAddress: string;
     timestamp: Date;
     accelerometer1: Map<string, number>;
     accelerometer2: Map<string, number>;
@@ -12,7 +12,7 @@ export interface ISensorData extends Document {
 }
 
 const SensorDataSchema: Schema = new Schema({
-    userId: { type: String, required: true, index: true },
+    MACAddress: { type: String, required: true },
     timestamp: { type: Date, default: Date.now, index: true },
     accelerometer1: { type: Map, of: Number },
     accelerometer2: { type: Map, of: Number },
