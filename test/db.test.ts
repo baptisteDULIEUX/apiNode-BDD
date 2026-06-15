@@ -83,6 +83,23 @@ describe('Database Routes', () => {
             const sensor = await Sensor.findOne({ MACAddress: newMac });
             expect(sensor?.samplingFrequencyHz).toBe(120);
         });
+
+        it('should retrieve the sampling frequency via GET', async () => {
+            const res = await request(app)
+                .get(`/api/db/sensor/${testMacAddress}/config`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data.samplingFrequencyHz).toBe(100);
+        });
+
+        it('should return 404 via GET for a non-existent sensor', async () => {
+            const res = await request(app)
+                .get('/api/db/sensor/non-existent-mac/config');
+
+            expect(res.status).toBe(404);
+            expect(res.body.success).toBe(false);
+        });
     });
 
     describe('POST /api/db/user/:userId/macs', () => {

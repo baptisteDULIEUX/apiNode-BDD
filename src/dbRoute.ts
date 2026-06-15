@@ -250,7 +250,7 @@ router.get('/user/:userId/sensors', async (req: Request, res: Response) => {
 });
 
 // Mise à jour de la configuration d'un capteur (ex: fréquence d'échantillonnage)
-const updateSensorConfig = async (req: Request, res: Response) => {
+router.put('/sensor/:macAddress/config', async (req: Request, res: Response) => {
     try {
         const { macAddress } = req.params;
         const { samplingFrequencyHz } = req.body;
@@ -281,9 +281,34 @@ const updateSensorConfig = async (req: Request, res: Response) => {
             error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
-};
+});
 
-router.put('/sensor/:macAddress/config', updateSensorConfig);
-router.patch('/sensor/:macAddress/config', updateSensorConfig);
+// Récupération de la configuration d'un capteur
+router.get('/sensor/:macAddress/config', async (req: Request, res: Response) => {
+    try {
+        const { macAddress } = req.params;
+        const sensor = await Sensor.findOne({ MACAddress: macAddress });
+
+        if (!sensor) {
+            return res.status(404).json({
+                success: false,
+                message: 'Sensor not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                samplingFrequencyHz: sensor.samplingFrequencyHz
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching sensor config',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
 
 export default router;
