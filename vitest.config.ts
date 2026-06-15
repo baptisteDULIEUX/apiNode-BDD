@@ -3,9 +3,10 @@ import { loadEnv } from 'vite'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv('test', process.cwd(), '');
-  
+
   return {
     test: {
+      fileParallelism: false,
       globals: true,
       environment: 'node',
       testTimeout: 30000,
