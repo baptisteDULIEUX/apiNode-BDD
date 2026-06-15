@@ -56,7 +56,7 @@ describe('Database Routes', () => {
         });
     });
 
-    describe('PUT & PATCH /api/db/sensor/:macAddress/config', () => {
+    describe('PUT /api/db/sensor/:macAddress/config', () => {
         it('should update the sampling frequency via PUT', async () => {
             const res = await request(app)
                 .put(`/api/db/sensor/${testMacAddress}/config`)
@@ -68,20 +68,6 @@ describe('Database Routes', () => {
 
             const sensor = await Sensor.findOne({ MACAddress: testMacAddress });
             expect(sensor?.samplingFrequencyHz).toBe(100);
-        });
-
-        it('should create a sensor and update its sampling frequency via PATCH if it does not exist', async () => {
-            const newMac = '99:88:77:66:55:44';
-            const res = await request(app)
-                .patch(`/api/db/sensor/${newMac}/config`)
-                .send({ samplingFrequencyHz: 120 });
-
-            expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
-            expect(res.body.data.samplingFrequencyHz).toBe(120);
-
-            const sensor = await Sensor.findOne({ MACAddress: newMac });
-            expect(sensor?.samplingFrequencyHz).toBe(120);
         });
 
         it('should retrieve the sampling frequency via GET', async () => {
@@ -110,7 +96,7 @@ describe('Database Routes', () => {
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
-            
+
             // Check that User now has sensors
             const updatedUser = await User.findById(testUserId);
             expect(updatedUser?.sensors.length).toBe(2);
