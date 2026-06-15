@@ -15,7 +15,8 @@ router.post('/store', async (req: Request, res: Response) => {
             heartRate,
             temperature,
             reactionTimes,
-            userData
+            userData,
+            sampleFrequencyHz
         } = req.body;
 
         const targetMac = macAddress || '00:00:00:00:00:00';
@@ -23,7 +24,10 @@ router.post('/store', async (req: Request, res: Response) => {
         // Find or create the sensor based on MACAddress
         let sensor = await Sensor.findOne({ MACAddress: targetMac });
         if (!sensor) {
-            sensor = new Sensor({ MACAddress: targetMac });
+            sensor = new Sensor({ MACAddress: targetMac, sampleFrequencyHz });
+            await sensor.save();
+        } else if (sampleFrequencyHz !== undefined && sensor.sampleFrequencyHz !== sampleFrequencyHz) {
+            sensor.sampleFrequencyHz = sampleFrequencyHz;
             await sensor.save();
         }
 
