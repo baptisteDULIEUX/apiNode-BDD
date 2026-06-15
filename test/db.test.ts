@@ -1,77 +1,91 @@
 import request from 'supertest';
 import app from '../src/index';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import SensorData from '../src/models/SensorData';
+import SessionData from '../src/models/SessionData';
+import Sensor from '../src/models/Sensor';
+import User from '../src/models/User';
 
 describe('Database Routes', () => {
-    const testUserId = 'test-user-123';
-    let createdDataId: string;
+    let testUserId: string;
+    const testMacAddress = 'AA:BB:CC:DD:EE:FF';
+    const testMacAddress2 = '11:22:33:44:55:66';
 
     beforeAll(async () => {
-        // Nettoyer les données de test existantes
-        await SensorData.deleteMany({ userId: testUserId });
+        // Préparer un utilisateur de test
+        const user = new User({
+            name: 'DB Route Test User',
+            email: 'db-test-user@test.com',
+            password: 'password123'
+        });
+        const savedUser = await user.save();
+        testUserId = savedUser._id.toString();
+
+        await SessionData.deleteMany({});
+        await Sensor.deleteMany({});
     });
 
     afterAll(async () => {
-        // Nettoyer après les tests
-        await SensorData.deleteMany({ userId: testUserId });
+        await SessionData.deleteMany({});
+        await Sensor.deleteMany({});
+        await User.findByIdAndDelete(testUserId);
     });
 
     describe('POST /api/db/store', () => {
-        it('should store sensor data successfully', async () => {
-            const sensorData = {
-                userId: testUserId,
+        it('should store session data successfully and create an orphan sensor if new', async () => {
+            const sessionData = {
+                macAddress: testMacAddress,
                 accelerometer1: { x: 1.5, y: 2.3, z: 0.8 },
-                accelerometer2: { x: 1.2, y: 2.1, z: 0.9 },
-                heartRate: { bpm: 75, variance: 5 },
-                temperature: { celsius: 36.5, fahrenheit: 97.7 },
-                reactionTimes: [250, 280, 260, 275],
-                userData: { age: 25, weight: 70, height: 175 }
+                heartRate: { bpm: 75, variance: 5 }
             };
 
             const res = await request(app)
                 .post('/api/db/store')
-                .send(sensorData);
+                .send(sessionData);
 
             expect(res.status).toBe(201);
             expect(res.body.success).toBe(true);
-            expect(res.body.message).toBe('Data stored successfully');
             expect(res.body.data).toHaveProperty('_id');
-            expect(res.body.data.userId).toBe(testUserId);
+            expect(res.body.data).toHaveProperty('sensor');
 
-            createdDataId = res.body.data._id;
+            // Verify the sensor was created
+            const sensor = await Sensor.findOne({ MACAddress: testMacAddress });
+            expect(sensor).toBeDefined();
+            expect(sensor?.MACAddress).toBe(testMacAddress);
         });
+    });
 
-        it('should store data with minimal fields', async () => {
-            const minimalData = {
-                userId: testUserId,
-                heartRate: { bpm: 80 }
-            };
-
+    describe('POST /api/db/user/:userId/macs', () => {
+        it('should link MAC addresses to a user', async () => {
             const res = await request(app)
-                .post('/api/db/store')
-                .send(minimalData);
+                .post(`/api/db/user/${testUserId}/macs`)
+                .send({ MACs: [testMacAddress, testMacAddress2] });
 
-            expect(res.status).toBe(201);
+            expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
+            
+            // Check that User now has sensors
+            const updatedUser = await User.findById(testUserId);
+            expect(updatedUser?.sensors.length).toBe(2);
         });
 
-        it('should handle missing userId', async () => {
-            const invalidData = {
-                heartRate: { bpm: 80 }
-            };
-
+        it('should fail with invalid MACs format', async () => {
             const res = await request(app)
-                .post('/api/db/store')
-                .send(invalidData);
+                .post(`/api/db/user/${testUserId}/macs`)
+                .send({ MACs: "not-an-array" });
 
-            expect(res.status).toBe(500);
+            expect(res.status).toBe(400);
             expect(res.body.success).toBe(false);
         });
     });
 
     describe('GET /api/db/user/:userId', () => {
-        it('should retrieve all user data', async () => {
+        it('should retrieve all session data for a user', async () => {
+            // Store some data for the second MAC
+            await request(app).post('/api/db/store').send({
+                macAddress: testMacAddress2,
+                temperature: { celsius: 36.5 }
+            });
+
             const res = await request(app)
                 .get(`/api/db/user/${testUserId}`);
 
@@ -79,55 +93,13 @@ describe('Database Routes', () => {
             expect(res.body.success).toBe(true);
             expect(res.body.count).toBeGreaterThan(0);
             expect(Array.isArray(res.body.data)).toBe(true);
-            expect(res.body.data[0].userId).toBe(testUserId);
-        });
-
-        it('should respect limit and skip parameters', async () => {
-            const res = await request(app)
-                .get(`/api/db/user/${testUserId}`)
-                .query({ limit: 1, skip: 0 });
-
-            expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
-            expect(res.body.data.length).toBeLessThanOrEqual(1);
-        });
-
-        it('should return empty array for non-existent user', async () => {
-            const res = await request(app)
-                .get('/api/db/user/non-existent-user');
-
-            expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
-            expect(res.body.count).toBe(0);
-            expect(res.body.data).toEqual([]);
-        });
-    });
-
-    describe('GET /api/db/user/:userId/latest', () => {
-        it('should retrieve latest user data', async () => {
-            const res = await request(app)
-                .get(`/api/db/user/${testUserId}/latest`);
-
-            expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
-            expect(res.body.data).toHaveProperty('_id');
-            expect(res.body.data.userId).toBe(testUserId);
-        });
-
-        it('should return 404 for non-existent user', async () => {
-            const res = await request(app)
-                .get('/api/db/user/non-existent-user/latest');
-
-            expect(res.status).toBe(404);
-            expect(res.body.success).toBe(false);
-            expect(res.body.message).toBe('No data found for this user');
         });
     });
 
     describe('GET /api/db/user/:userId/range', () => {
         it('should retrieve data by date range', async () => {
             const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-            const endDate = new Date().toISOString();
+            const endDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
             const res = await request(app)
                 .get(`/api/db/user/${testUserId}/range`)
@@ -137,61 +109,34 @@ describe('Database Routes', () => {
             expect(res.body.success).toBe(true);
             expect(Array.isArray(res.body.data)).toBe(true);
         });
+    });
 
-        it('should retrieve data with only startDate', async () => {
-            const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
+    describe('GET /api/db/user/:userId/sensors', () => {
+        it('should return the sensors linked to the user', async () => {
             const res = await request(app)
-                .get(`/api/db/user/${testUserId}/range`)
-                .query({ startDate });
+                .get(`/api/db/user/${testUserId}/sensors`);
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
-        });
-
-        it('should retrieve all data without date filters', async () => {
-            const res = await request(app)
-                .get(`/api/db/user/${testUserId}/range`);
-
-            expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
-            expect(res.body.count).toBeGreaterThan(0);
+            expect(res.body.count).toBe(2);
+            expect(Array.isArray(res.body.data)).toBe(true);
+            // First item should be a populated sensor object
+            expect(res.body.data[0]).toHaveProperty('MACAddress');
         });
     });
 
-    describe('DELETE /api/db/user/:userId', () => {
-        it('should delete all user data', async () => {
-            // D'abord créer des données à supprimer
-            const tempUserId = 'temp-user-to-delete';
-            await request(app)
-                .post('/api/db/store')
-                .send({
-                    userId: tempUserId,
-                    heartRate: { bpm: 70 }
-                });
-
+    describe('DELETE /api/db/user/:userId/macs', () => {
+        it('should unlink MAC addresses from a user', async () => {
             const res = await request(app)
-                .delete(`/api/db/user/${tempUserId}`);
+                .delete(`/api/db/user/${testUserId}/macs`)
+                .send({ MACs: [testMacAddress] });
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
-            expect(res.body.message).toBe('Data deleted successfully');
-            expect(res.body.deletedCount).toBeGreaterThan(0);
 
-            // Vérifier que les données ont été supprimées
-            const checkRes = await request(app)
-                .get(`/api/db/user/${tempUserId}`);
-            expect(checkRes.body.count).toBe(0);
-        });
-
-        it('should return 0 deletedCount for non-existent user', async () => {
-            const res = await request(app)
-                .delete('/api/db/user/non-existent-user');
-
-            expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
-            expect(res.body.deletedCount).toBe(0);
+            // Check that User now has only 1 sensor left
+            const updatedUser = await User.findById(testUserId);
+            expect(updatedUser?.sensors.length).toBe(1);
         });
     });
 });
-
