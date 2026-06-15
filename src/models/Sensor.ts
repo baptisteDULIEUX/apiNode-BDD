@@ -4,7 +4,7 @@ export interface ISensor extends Document {
     MACAddress: string;
     user?: mongoose.Types.ObjectId;
     name?: string;
-    sampleFrequencyHz?: number;
+    samplingFrequencyHz?: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -26,7 +26,7 @@ const SensorSchema = new Schema<ISensor>(
             type: String,
             trim: true,
         },
-        sampleFrequencyHz: {
+        samplingFrequencyHz: {
             type: Number,
             required: false,
         }

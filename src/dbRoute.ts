@@ -16,7 +16,7 @@ router.post('/store', async (req: Request, res: Response) => {
             temperature,
             reactionTimes,
             userData,
-            sampleFrequencyHz
+            samplingFrequencyHz
         } = req.body;
 
         const targetMac = macAddress || '00:00:00:00:00:00';
@@ -24,10 +24,10 @@ router.post('/store', async (req: Request, res: Response) => {
         // Find or create the sensor based on MACAddress
         let sensor = await Sensor.findOne({ MACAddress: targetMac });
         if (!sensor) {
-            sensor = new Sensor({ MACAddress: targetMac, sampleFrequencyHz });
+            sensor = new Sensor({ MACAddress: targetMac, samplingFrequencyHz });
             await sensor.save();
-        } else if (sampleFrequencyHz !== undefined && sensor.sampleFrequencyHz !== sampleFrequencyHz) {
-            sensor.sampleFrequencyHz = sampleFrequencyHz;
+        } else if (samplingFrequencyHz !== undefined && sensor.samplingFrequencyHz !== samplingFrequencyHz) {
+            sensor.samplingFrequencyHz = samplingFrequencyHz;
             await sensor.save();
         }
 
@@ -248,5 +248,42 @@ router.get('/user/:userId/sensors', async (req: Request, res: Response) => {
         });
     }
 });
+
+// Mise à jour de la configuration d'un capteur (ex: fréquence d'échantillonnage)
+const updateSensorConfig = async (req: Request, res: Response) => {
+    try {
+        const { macAddress } = req.params;
+        const { samplingFrequencyHz } = req.body;
+
+        if (samplingFrequencyHz === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'samplingFrequencyHz is required'
+            });
+        }
+
+        // Met à jour ou crée le capteur s'il n'existe pas encore
+        const sensor = await Sensor.findOneAndUpdate(
+            { MACAddress: macAddress },
+            { samplingFrequencyHz },
+            { new: true, upsert: true }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Sensor configuration updated successfully',
+            data: sensor
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error updating sensor config',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+};
+
+router.put('/sensor/:macAddress/config', updateSensorConfig);
+router.patch('/sensor/:macAddress/config', updateSensorConfig);
 
 export default router;

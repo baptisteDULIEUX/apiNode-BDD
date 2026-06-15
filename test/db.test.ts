@@ -35,7 +35,8 @@ describe('Database Routes', () => {
             const sessionData = {
                 macAddress: testMacAddress,
                 accelerometer1: { x: 1.5, y: 2.3, z: 0.8 },
-                heartRate: { bpm: 75, variance: 5 }
+                heartRate: { bpm: 75, variance: 5 },
+                samplingFrequencyHz: 50
             };
 
             const res = await request(app)
@@ -51,6 +52,36 @@ describe('Database Routes', () => {
             const sensor = await Sensor.findOne({ MACAddress: testMacAddress });
             expect(sensor).toBeDefined();
             expect(sensor?.MACAddress).toBe(testMacAddress);
+            expect(sensor?.samplingFrequencyHz).toBe(50);
+        });
+    });
+
+    describe('PUT & PATCH /api/db/sensor/:macAddress/config', () => {
+        it('should update the sampling frequency via PUT', async () => {
+            const res = await request(app)
+                .put(`/api/db/sensor/${testMacAddress}/config`)
+                .send({ samplingFrequencyHz: 100 });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data.samplingFrequencyHz).toBe(100);
+
+            const sensor = await Sensor.findOne({ MACAddress: testMacAddress });
+            expect(sensor?.samplingFrequencyHz).toBe(100);
+        });
+
+        it('should create a sensor and update its sampling frequency via PATCH if it does not exist', async () => {
+            const newMac = '99:88:77:66:55:44';
+            const res = await request(app)
+                .patch(`/api/db/sensor/${newMac}/config`)
+                .send({ samplingFrequencyHz: 120 });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data.samplingFrequencyHz).toBe(120);
+
+            const sensor = await Sensor.findOne({ MACAddress: newMac });
+            expect(sensor?.samplingFrequencyHz).toBe(120);
         });
     });
 
