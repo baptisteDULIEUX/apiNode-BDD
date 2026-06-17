@@ -2,7 +2,9 @@ import express from 'express'
 import dotenv from 'dotenv'
 
 import testRoute from './testRoute';
-import dbRoute from './dbRoute';
+import userDbRoutes from './routes/user.db.routes';
+import sensorDbRoutes from './routes/sensor.db.routes';
+import sessionDbRoutes from './routes/session.db.routes';
 import authRoutes from './routes/auth.routes';
 import seedRoutes from './routes/seed.routes';
 import connectDB from './database';
@@ -14,7 +16,9 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use('/api/test', testRoute);
-app.use('/api/db', dbRoute);
+app.use('/api/db/user', userDbRoutes);
+app.use('/api/db/sensor', sensorDbRoutes);
+app.use('/api/db', sessionDbRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/seed', seedRoutes);
 

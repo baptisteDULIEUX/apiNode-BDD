@@ -1,66 +1,13 @@
 import express, { Request, Response } from 'express';
-import SessionData from './models/SessionData';
-import Sensor from './models/Sensor';
-import User from './models/User';
+import User from '../models/User';
+import SessionData from '../models/SessionData';
+import Sensor from '../models/Sensor';
+import PhoneTestResult from '../models/PhoneTestResult';
 
 const router = express.Router();
 
-// Stocker des données en BDD
-router.post('/store', async (req: Request, res: Response) => {
-    try {
-        const {
-            macAddress,
-            accelerometer1,
-            accelerometer2,
-            heartRate,
-            temperature,
-            reactionTimes,
-            userData,
-            samplingFrequencyHz
-        } = req.body;
-
-        const targetMac = macAddress || '00:00:00:00:00:00';
-
-        // Find or create the sensor based on MACAddress
-        let sensor = await Sensor.findOne({ MACAddress: targetMac });
-        if (!sensor) {
-            sensor = new Sensor({ MACAddress: targetMac, samplingFrequencyHz });
-            await sensor.save();
-        } else if (samplingFrequencyHz !== undefined && sensor.samplingFrequencyHz !== samplingFrequencyHz) {
-            sensor.samplingFrequencyHz = samplingFrequencyHz;
-            await sensor.save();
-        }
-
-        // Create a new session
-        const sessionData = new SessionData({
-            sensor: sensor._id,
-            accelerometer1: new Map(Object.entries(accelerometer1 || {})),
-            accelerometer2: new Map(Object.entries(accelerometer2 || {})),
-            heartRate: new Map(Object.entries(heartRate || {})),
-            temperature: new Map(Object.entries(temperature || {})),
-            reactionTimes: reactionTimes || [],
-            userData: new Map(Object.entries(userData || {}))
-        });
-
-        await sessionData.save();
-
-        return res.status(201).json({
-            success: true,
-            message: 'Session data created successfully',
-            data: sessionData
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Error processing sensor data',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
-
 // Récupérer toutes les données d'un utilisateur
-router.get('/user/:userId', async (req: Request, res: Response) => {
+router.get('/:userId', async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
         const { limit = 100, skip = 0 } = req.query;
@@ -89,8 +36,38 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
     }
 });
 
+// Récupérer toutes les données de test téléphone d'un utilisateur
+router.get('/:userId/phone-tests', async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.params;
+        const { limit = 100, skip = 0 } = req.query;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const data = await PhoneTestResult.find({ userId: user._id })
+            .sort({ timestamp: -1 })
+            .limit(Number(limit))
+            .skip(Number(skip));
+
+        res.status(200).json({
+            success: true,
+            count: data.length,
+            data
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error retrieving phone test data',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+
 // Récupérer les données par plage de dates
-router.get('/user/:userId/range', async (req: Request, res: Response) => {
+router.get('/:userId/range', async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
         const { startDate, endDate } = req.query;
@@ -125,7 +102,7 @@ router.get('/user/:userId/range', async (req: Request, res: Response) => {
 });
 
 // Ajout d'adresses MAC aux utilisateurs
-router.post('/user/:userId/macs', async (req: Request, res: Response) => {
+router.post('/:userId/macs', async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
         const { MACs } = req.body;
@@ -176,7 +153,7 @@ router.post('/user/:userId/macs', async (req: Request, res: Response) => {
 });
 
 // Suppression d'une ou plusieurs adresses MAC d'un utilisateur
-router.delete('/user/:userId/macs', async (req: Request, res: Response) => {
+router.delete('/:userId/macs', async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
         const { MACs } = req.body;
@@ -222,7 +199,7 @@ router.delete('/user/:userId/macs', async (req: Request, res: Response) => {
 });
 
 // Retourner tous les sensors d'un utilisateur
-router.get('/user/:userId/sensors', async (req: Request, res: Response) => {
+router.get('/:userId/sensors', async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
 
@@ -244,68 +221,6 @@ router.get('/user/:userId/sensors', async (req: Request, res: Response) => {
         return res.status(500).json({
             success: false,
             message: 'Error fetching sensors',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
-
-// Mise à jour de la configuration d'un capteur (ex: fréquence d'échantillonnage)
-router.put('/sensor/:macAddress/config', async (req: Request, res: Response) => {
-    try {
-        const { macAddress } = req.params;
-        const { samplingFrequencyHz } = req.body;
-
-        if (samplingFrequencyHz === undefined) {
-            return res.status(400).json({
-                success: false,
-                message: 'samplingFrequencyHz is required'
-            });
-        }
-
-        // Met à jour ou crée le capteur s'il n'existe pas encore
-        const sensor = await Sensor.findOneAndUpdate(
-            { MACAddress: macAddress },
-            { samplingFrequencyHz },
-            { new: true, upsert: true }
-        );
-
-        return res.status(200).json({
-            success: true,
-            message: 'Sensor configuration updated successfully',
-            data: sensor
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Error updating sensor config',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
-
-// Récupération de la configuration d'un capteur
-router.get('/sensor/:macAddress/config', async (req: Request, res: Response) => {
-    try {
-        const { macAddress } = req.params;
-        const sensor = await Sensor.findOne({ MACAddress: macAddress });
-
-        if (!sensor) {
-            return res.status(404).json({
-                success: false,
-                message: 'Sensor not found'
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                samplingFrequencyHz: sensor.samplingFrequencyHz
-            }
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Error fetching sensor config',
             error: error instanceof Error ? error.message : 'Unknown error'
         });
     }

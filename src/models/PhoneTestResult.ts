@@ -50,9 +50,6 @@ const PhoneTestResultSchema = new Schema<IPhoneTestResult>(
             type: Schema.Types.Mixed,
             required: [true, 'Results are required'],
         }
-    },
-    {
-        timestamps: true,
     }
 );
 
