@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import User from '../models/User';
 import SessionData from '../models/SessionData';
 import Sensor from '../models/Sensor';
-import PhoneTestResult from '../models/PhoneTestResult';
 
 const router = express.Router();
 
@@ -31,36 +30,6 @@ router.get('/:userId', async (req: Request, res: Response) => {
         res.status(500).json({
             success: false,
             message: 'Error retrieving data',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
-
-// Récupérer toutes les données de test téléphone d'un utilisateur
-router.get('/:userId/phone-tests', async (req: Request, res: Response) => {
-    try {
-        const { userId } = req.params;
-        const { limit = 100, skip = 0 } = req.query;
-
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        const data = await PhoneTestResult.find({ userId: user._id })
-            .sort({ timestamp: -1 })
-            .limit(Number(limit))
-            .skip(Number(skip));
-
-        res.status(200).json({
-            success: true,
-            count: data.length,
-            data
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error retrieving phone test data',
             error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
