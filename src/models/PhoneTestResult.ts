@@ -3,6 +3,9 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IPhoneTestResult extends Document {
     userId: mongoose.Types.ObjectId;
     testType: 'REACTION_TIME' | 'AUDIO_ANALYSIS';
+    intoxicationStatus?: string;
+    intoxicationScore?: number;
+    timestamp?: Date;
     results: {
         // REACTION_TIME fields
         times?: number[];
@@ -30,6 +33,18 @@ const PhoneTestResultSchema = new Schema<IPhoneTestResult>(
             type: String,
             enum: ['REACTION_TIME', 'AUDIO_ANALYSIS'],
             required: [true, 'Test type is required'],
+        },
+        intoxicationStatus: {
+            type: String,
+            required: false,
+        },
+        intoxicationScore: {
+            type: Number,
+            required: false,
+        },
+        timestamp: {
+            type: Date,
+            required: false,
         },
         results: {
             type: Schema.Types.Mixed,
