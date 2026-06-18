@@ -1,91 +1,101 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import User from '../models/User';
 import Sensor from '../models/Sensor';
 import SessionData from '../models/SessionData';
 import PhoneTestResult from '../models/PhoneTestResult';
-import { 
-    buildFakeUser, 
-    buildFakeSensor, 
-    buildFakeSessionData, 
-    buildFakePhoneTestResult 
+import {
+    buildFakeUser,
+    buildFakeSensor,
+    buildOrphanSensor,
+    buildTemporalizedSession,
+    buildFakePhoneTestResult,
 } from '../factories';
 
 const router = express.Router();
 
-// --- ROUTE DE SEEDING ---
-// Génère un jeu de données complet et le sauvegarde en BDD.
+// Créneaux horaires avec profils physiologiques réalistes
+const TIME_SLOTS = [
+    { hour: 7,  minute: 30, bpmBase: 65,  tempBase: 36.4, label: 'matin'        }, // Réveil / repos
+    { hour: 12, minute: 0,  bpmBase: 82,  tempBase: 36.9, label: 'midi'         }, // Activité midday
+    { hour: 17, minute: 30, bpmBase: 90,  tempBase: 37.0, label: 'après-midi'   }, // Sport / pic d'activité
+    { hour: 21, minute: 0,  bpmBase: 70,  tempBase: 36.7, label: 'soir'         }, // Repos soir
+];
 
+function buildTimestamp(daysAgo: number, hour: number, minute: number): Date {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    d.setHours(hour, minute + Math.floor(Math.random() * 10), 0, 0);
+    return d;
+}
+
+// POST /api/seed/generate
 router.post('/generate', async (req, res) => {
     try {
-        const userCount = parseInt(req.query.users as string) || 2;
-        const sessionsPerUser = parseInt(req.query.sessions as string) || 3;
-        const testsPerUser = parseInt(req.query.tests as string) || 4;
-        
-        // Optionnel : on peut vider la base avant (attention à ne pas le faire en prod)
+        const userCount  = parseInt(req.query.users    as string) || 2;
+        const days       = parseInt(req.query.days     as string) || 14;
+        const orphans    = parseInt(req.query.orphans  as string) || 3;
+
         if (req.query.clear === 'true') {
             await Promise.all([
                 User.deleteMany({}),
                 Sensor.deleteMany({}),
                 SessionData.deleteMany({}),
-                PhoneTestResult.deleteMany({})
+                PhoneTestResult.deleteMany({}),
             ]);
         }
 
-        const createdData = {
-            users: [] as any[],
-            sensors: [] as any[],
-            sessions: [] as any[],
-            phoneTests: [] as any[]
+        const summary = {
+            usersCreated: 0,
+            sensorsCreated: 0,
+            sessionsCreated: 0,
+            phoneTestsCreated: 0,
+            orphanSensorsCreated: 0,
         };
 
         for (let i = 0; i < userCount; i++) {
-            // 1. Créer Utilisateur
             const fakeUser = buildFakeUser();
-            
-            // Compte de test (connu) pour faciliter les tests front
-            if (i === 0) {
-                fakeUser.name = 'Utilisateur Test';
-                fakeUser.email = 'test@test.com';
-                // Le mot de passe par défaut est 'password123' via buildFakeUser
-            }
-
-            // 2. Créer 1 Capteur pour cet utilisateur
-            const fakeSensor = buildFakeSensor(fakeUser._id as mongoose.Types.ObjectId);
-            fakeUser.sensors.push(fakeSensor._id as mongoose.Types.ObjectId);
-            
+            const fakeSensor = buildFakeSensor(fakeUser._id as any);
+            fakeUser.sensors.push(fakeSensor._id as any);
             await fakeUser.save();
             await fakeSensor.save();
+            summary.usersCreated++;
+            summary.sensorsCreated++;
 
-            createdData.users.push(fakeUser);
-            createdData.sensors.push(fakeSensor);
-
-            // 3. Créer des Sessions pour ce capteur
-            for (let j = 0; j < sessionsPerUser; j++) {
-                const fakeSession = buildFakeSessionData(fakeSensor._id as mongoose.Types.ObjectId);
-                await fakeSession.save();
-                createdData.sessions.push(fakeSession);
+            // Sessions temporalisées : 4 créneaux × N jours
+            for (let d = days; d >= 0; d--) {
+                for (const slot of TIME_SLOTS) {
+                    const ts = buildTimestamp(d, slot.hour, slot.minute);
+                    const session = buildTemporalizedSession(
+                        fakeSensor._id as any,
+                        ts,
+                        slot.bpmBase,
+                        slot.tempBase
+                    );
+                    await session.save();
+                    summary.sessionsCreated++;
+                }
             }
 
-            // 4. Créer des tests téléphone pour cet utilisateur
-            for (let k = 0; k < testsPerUser; k++) {
-                const fakePhoneTest = buildFakePhoneTestResult(fakeUser._id as mongoose.Types.ObjectId);
-                await fakePhoneTest.save();
-                createdData.phoneTests.push(fakePhoneTest);
+            // Tests mobiles temporalisés : 1 par jour (alternance reaction / audio)
+            for (let d = days; d >= 0; d--) {
+                const ts = buildTimestamp(d, 9, 0); // Test du matin
+                const test = buildFakePhoneTestResult(fakeUser._id as any, ts);
+                await test.save();
+                summary.phoneTestsCreated++;
             }
         }
 
-        res.status(201).json({
-            message: "Base de données seedée avec succès avec des données crédibles",
-            summary: {
-                usersCreated: createdData.users.length,
-                sensorsCreated: createdData.sensors.length,
-                sessionsCreated: createdData.sessions.length,
-                phoneTestsCreated: createdData.phoneTests.length
-            }
-        });
+        // Capteurs orphelins (non reliés à un utilisateur — pour la démo)
+        for (let o = 0; o < orphans; o++) {
+            const orphan = buildOrphanSensor(o);
+            await orphan.save();
+            summary.orphanSensorsCreated++;
+            summary.sensorsCreated++;
+        }
+
+        res.status(201).json({ message: 'Seeding temporalisé réussi', summary });
     } catch (error) {
-        res.status(500).json({ message: "Erreur lors du seeding", error });
+        res.status(500).json({ message: 'Erreur lors du seeding', error });
     }
 });
 

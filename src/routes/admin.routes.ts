@@ -15,7 +15,11 @@ router.get('/users', requireAdmin, async (_req: Request, res: Response) => {
         const sensorCounts = await Sensor.aggregate([
             { $group: { _id: '$user', count: { $sum: 1 } } }
         ]);
-        const countMap = new Map(sensorCounts.map(s => [s._id.toString(), s.count]));
+        const countMap = new Map(
+            sensorCounts
+                .filter(s => s._id != null)
+                .map(s => [s._id.toString(), s.count])
+        );
 
         const result = users.map(u => ({
             id: u._id.toString(),
@@ -80,16 +84,33 @@ router.delete('/users/:id', requireAdmin, async (req: AuthRequest, res: Response
             return;
         }
 
+        // Délie les capteurs (conservés) et supprime les sessions + tests
         const sensors = await Sensor.find({ user: id });
         const sensorIds = sensors.map(s => s._id);
         await SessionData.deleteMany({ sensor: { $in: sensorIds } });
-        await Sensor.deleteMany({ user: id });
+        await Sensor.updateMany({ user: id }, { $unset: { user: 1 } });
         await PhoneTestResult.deleteMany({ userId: id });
         await User.findByIdAndDelete(id);
 
-        res.status(200).json({ success: true, message: 'Utilisateur et ses données supprimés' });
+        res.status(200).json({ success: true, message: 'Utilisateur supprimé, capteurs conservés sans propriétaire' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Erreur lors de la suppression', error });
+    }
+});
+
+// GET /api/admin/users/:id/sensors — capteurs d'un utilisateur spécifique
+router.get('/users/:id/sensors', requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const sensors = await Sensor.find({ user: req.params.id }).lean();
+        const result = sensors.map(s => ({
+            id: s._id.toString(),
+            MACAddress: s.MACAddress,
+            name: s.name ?? null,
+            samplingFrequencyHz: s.samplingFrequencyHz ?? null,
+        }));
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Erreur serveur', error });
     }
 });
 
