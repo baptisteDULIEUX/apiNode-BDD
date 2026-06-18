@@ -43,6 +43,13 @@ router.post('/generate', async (req, res) => {
             // 1. Créer Utilisateur
             const fakeUser = buildFakeUser();
             
+            // Compte de test (connu) pour faciliter les tests front
+            if (i === 0) {
+                fakeUser.name = 'Utilisateur Test';
+                fakeUser.email = 'test@test.com';
+                // Le mot de passe par défaut est 'password123' via buildFakeUser
+            }
+
             // 2. Créer 1 Capteur pour cet utilisateur
             const fakeSensor = buildFakeSensor(fakeUser._id as mongoose.Types.ObjectId);
             fakeUser.sensors.push(fakeSensor._id as mongoose.Types.ObjectId);

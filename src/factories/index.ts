@@ -44,7 +44,7 @@ export const buildFakeSessionData = (sensorId: mongoose.Types.ObjectId) => {
         ["y", faker.number.float({ min: -2, max: 2, fractionDigits: 2 })],
         ["z", faker.number.float({ min: 8, max: 11, fractionDigits: 2 })] // Gravité
     ]);
-    
+
     const acc2 = new Map([
         ["x", faker.number.float({ min: -2, max: 2, fractionDigits: 2 })],
         ["y", faker.number.float({ min: -2, max: 2, fractionDigits: 2 })],
