@@ -6,6 +6,7 @@ export interface IUser extends Document {
     email: string;
     password: string;
     name: string;
+    role: 'user' | 'admin';
     createdAt: Date;
     updatedAt: Date;
     sensors: mongoose.Types.ObjectId[];
@@ -32,6 +33,11 @@ const userSchema = new Schema<IUser>(
             type: String,
             required: [true, 'Name is required'],
             trim: true,
+        },
+        role: {
+            type: String,
+            enum: ['user', 'admin'],
+            default: 'user',
         },
         sensors: [{
             type: Schema.Types.ObjectId,

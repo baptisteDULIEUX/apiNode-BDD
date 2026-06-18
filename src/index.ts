@@ -8,6 +8,7 @@ import sessionDbRoutes from './routes/session.db.routes';
 import phoneTestDbRoutes from './routes/phoneTest.db.routes';
 import authRoutes from './routes/auth.routes';
 import seedRoutes from './routes/seed.routes';
+import adminRoutes from './routes/admin.routes';
 import connectDB from './database';
 
 dotenv.config();
@@ -23,6 +24,7 @@ app.use('/api/db/sensor', sensorDbRoutes);
 app.use('/api/db', sessionDbRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Ne connecter à MongoDB que si on n'est pas en mode test
 if (process.env.NODE_ENV !== 'test') {

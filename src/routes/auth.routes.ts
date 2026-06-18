@@ -68,6 +68,7 @@ router.post('/register', async (req: Request<{}, {}, RegisterBody>, res: Respons
                 id: user._id.toString(),
                 email: user.email,
                 name: user.name,
+                role: user.role,
             },
         };
 
@@ -130,6 +131,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
                 id: user._id.toString(),
                 email: user.email,
                 name: user.name,
+                role: user.role,
             },
         };
 
@@ -161,6 +163,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
             id: req.user._id.toString(),
             email: req.user.email,
             name: req.user.name,
+            role: req.user.role,
             createdAt: req.user.createdAt,
             updatedAt: req.user.updatedAt,
         };

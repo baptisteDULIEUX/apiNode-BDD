@@ -89,4 +89,27 @@ router.post('/generate', async (req, res) => {
     }
 });
 
+// POST /api/seed/admin — crée un compte admin par défaut (si inexistant)
+router.post('/admin', async (_req, res) => {
+    try {
+        const existing = await User.findOne({ email: 'admin@samsoul.fr' });
+        if (existing) {
+            res.status(200).json({ message: 'Compte admin déjà existant', email: 'admin@samsoul.fr' });
+            return;
+        }
+        const admin = await User.create({
+            name: 'Administrateur',
+            email: 'admin@samsoul.fr',
+            password: 'Admin123!',
+            role: 'admin',
+        });
+        res.status(201).json({
+            message: 'Compte admin créé',
+            credentials: { email: admin.email, password: 'Admin123!' },
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur création admin', error });
+    }
+});
+
 export default router;
