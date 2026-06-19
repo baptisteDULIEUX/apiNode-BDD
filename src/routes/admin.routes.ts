@@ -133,6 +133,34 @@ router.get('/sensors', requireAdmin, async (_req: Request, res: Response) => {
     }
 });
 
+// PUT /api/admin/sensors/:id/frequency — mettre à jour le taux d'échantillonnage
+router.put('/sensors/:id/frequency', requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { samplingFrequencyHz } = req.body;
+
+        if (!samplingFrequencyHz || isNaN(Number(samplingFrequencyHz)) || Number(samplingFrequencyHz) <= 0) {
+            res.status(400).json({ success: false, message: 'samplingFrequencyHz doit être un nombre positif' });
+            return;
+        }
+
+        const sensor = await Sensor.findByIdAndUpdate(
+            id,
+            { samplingFrequencyHz: Number(samplingFrequencyHz) },
+            { new: true }
+        );
+
+        if (!sensor) {
+            res.status(404).json({ success: false, message: 'Capteur introuvable' });
+            return;
+        }
+
+        res.status(200).json({ success: true, data: { samplingFrequencyHz: sensor.samplingFrequencyHz } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Erreur serveur', error });
+    }
+});
+
 // DELETE /api/admin/sensors/:id — supprimer un capteur et ses sessions
 router.delete('/sensors/:id', requireAdmin, async (req: Request, res: Response) => {
     try {
