@@ -1,5 +1,8 @@
 import express from 'express'
 import dotenv from 'dotenv'
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+import path from 'path';
 
 import testRoute from './testRoute';
 import userDbRoutes from './routes/user.db.routes';
@@ -15,6 +18,10 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Swagger Setup
+const swaggerDocument = YAML.load(path.join(__dirname, '../docs/swagger.yaml'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(express.json());
 app.use('/api/test', testRoute);

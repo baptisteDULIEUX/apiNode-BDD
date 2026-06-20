@@ -9,7 +9,7 @@
     "test:watch": "vitest",
     "test:auth": "vitest run test/user.model.test.ts test/auth.routes.test.ts test/auth.middleware.test.ts",
     "test:auth:watch": "vitest test/user.model.test.ts test/auth.routes.test.ts test/auth.middleware.test.ts",
-    "dev": "NODE_ENV=development node dist/index.js",
+    "dev": "cross-env NODE_ENV=development node dist/index.js",
     "start": "node dist/index.js"
   },
   "dependencies": {
@@ -19,7 +19,9 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.19.2",
-    "vite": "^8.0.16"
+    "swagger-ui-express": "^5.0.1",
+    "vite": "^8.0.16",
+    "yamljs": "^0.3.0"
   },
   "packageManager": "pnpm@8.6.0",
   "devDependencies": {
@@ -28,6 +30,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.9.1",
     "@types/supertest": "^6.0.3",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/yamljs": "^0.2.34",
+    "cross-env": "^10.1.0",
     "supertest": "^7.1.4",
     "typescript": "^5.5.3",
     "vitest": "^3.2.4"

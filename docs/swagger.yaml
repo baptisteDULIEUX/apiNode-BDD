@@ -1,0 +1,518 @@
+openapi: 3.0.0
+info:
+  title: API Node BDD - SamSoul
+  version: 0.1.0
+  description: Documentation des routes de l'API Node.js/Express pour interagir avec MongoDB.
+
+servers:
+  - url: http://localhost:3000
+    description: Serveur de développement
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        sensors:
+          type: array
+          items:
+            type: string
+
+    Sensor:
+      type: object
+      properties:
+        id:
+          type: string
+        MACAddress:
+          type: string
+        name:
+          type: string
+        samplingFrequencyHz:
+          type: number
+        user:
+          type: string
+
+    SessionData:
+      type: object
+      properties:
+        id:
+          type: string
+        sensor:
+          type: string
+        sessionTimestamp:
+          type: string
+          format: date-time
+        accelerometer1:
+          type: object
+        accelerometer2:
+          type: object
+        heartRate:
+          type: object
+        temperature:
+          type: object
+        reactionTimes:
+          type: array
+          items:
+            type: number
+        userData:
+          type: object
+
+    PhoneTestResult:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        testType:
+          type: string
+        intoxicationStatus:
+          type: string
+        intoxicationScore:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        results:
+          type: object
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Inscription d'un nouvel utilisateur
+      tags:
+        - Authentification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Utilisateur créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /api/auth/login:
+    post:
+      summary: Connexion d'un utilisateur
+      tags:
+        - Authentification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /api/auth/me:
+    get:
+      summary: Obtenir les informations de l'utilisateur connecté
+      tags:
+        - Authentification
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil de l'utilisateur
+
+  /api/db/user/{userId}/sensors:
+    get:
+      summary: Récupérer les capteurs d'un utilisateur
+      tags:
+        - Utilisateurs et Capteurs
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Liste des capteurs
+
+  /api/db/user/{userId}/macs:
+    post:
+      summary: Ajouter des adresses MAC (capteurs) à un utilisateur
+      tags:
+        - Utilisateurs et Capteurs
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                MACs:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Capteurs ajoutés
+    delete:
+      summary: Retirer des adresses MAC (capteurs) d'un utilisateur
+      tags:
+        - Utilisateurs et Capteurs
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                MACs:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Capteurs retirés
+
+  /api/db/store:
+    post:
+      summary: Stocker de nouvelles données de capteurs
+      tags:
+        - Capteurs et Sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                macAddress:
+                  type: string
+                samplingFrequencyHz:
+                  type: number
+                accelerometer1:
+                  type: object
+                accelerometer2:
+                  type: object
+                heartRate:
+                  type: object
+                temperature:
+                  type: object
+                reactionTimes:
+                  type: array
+                  items:
+                    type: number
+                userData:
+                  type: object
+      responses:
+        '201':
+          description: Session de données créée
+
+  /api/db/user/{userId}:
+    get:
+      summary: Récupérer l'historique des sessions d'un utilisateur
+      tags:
+        - Capteurs et Sessions
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Historique des sessions
+
+  /api/db/user/{userId}/range:
+    get:
+      summary: Récupérer les sessions d'un utilisateur sur une période
+      tags:
+        - Capteurs et Sessions
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Sessions sur la période
+
+  /api/db/sensor/{macAddress}/config:
+    put:
+      summary: Mettre à jour la configuration d'un capteur
+      tags:
+        - Capteurs et Sessions
+      parameters:
+        - in: path
+          name: macAddress
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                samplingFrequencyHz:
+                  type: number
+      responses:
+        '200':
+          description: Configuration mise à jour
+    get:
+      summary: Récupérer la configuration d'un capteur
+      tags:
+        - Capteurs et Sessions
+      parameters:
+        - in: path
+          name: macAddress
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Configuration actuelle
+
+  /api/db/user/{userId}/phone-tests:
+    get:
+      summary: Récupérer les résultats de tests téléphoniques (audio et réaction)
+      tags:
+        - Tests d'audio et de réaction
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Historique des tests
+    post:
+      summary: Sauvegarder un résultat de test téléphonique
+      tags:
+        - Tests d'audio et de réaction
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                testType:
+                  type: string
+                intoxicationStatus:
+                  type: string
+                intoxicationScore:
+                  type: number
+                results:
+                  type: object
+      responses:
+        '201':
+          description: Résultat sauvegardé
+
+  /api/admin/users:
+    get:
+      summary: Liste tous les utilisateurs (Admin)
+      tags:
+        - Administration
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des utilisateurs
+    post:
+      summary: Créer un utilisateur (Admin)
+      tags:
+        - Administration
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                name:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '201':
+          description: Utilisateur créé
+
+  /api/admin/users/{id}:
+    delete:
+      summary: Supprimer un utilisateur (Admin)
+      tags:
+        - Administration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Utilisateur supprimé
+
+  /api/admin/sensors:
+    get:
+      summary: Liste tous les capteurs (Admin)
+      tags:
+        - Administration
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des capteurs
+
+  /api/admin/sensors/{id}/frequency:
+    put:
+      summary: Mettre à jour la fréquence d'échantillonnage d'un capteur (Admin)
+      tags:
+        - Administration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                samplingFrequencyHz:
+                  type: number
+      responses:
+        '200':
+          description: Fréquence mise à jour
+
+  /api/admin/sensors/{id}:
+    delete:
+      summary: Supprimer un capteur (Admin)
+      tags:
+        - Administration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Capteur supprimé
+
+  /api/seed/generate:
+    post:
+      summary: Générer des données factices (Seeding)
+      tags:
+        - Développement
+      responses:
+        '201':
+          description: Données générées
+
+  /api/seed/admin:
+    post:
+      summary: Créer un compte administrateur par défaut
+      tags:
+        - Développement
+      responses:
+        '201':
+          description: Compte créé
