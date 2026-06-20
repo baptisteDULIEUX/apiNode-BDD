@@ -98,9 +98,6 @@ L'API est documentée de manière interactive via **Swagger / OpenAPI**.
 Une fois l'application démarrée (via Docker ou `pnpm run dev`), la documentation complète et testable de l'API est accessible à l'adresse suivante :
 👉 **[http://localhost:3000/api-docs](http://localhost:3000/api-docs)**
 
-- `TESTS.md` - Explications sur l'architecture et l'exécution des tests
-- `WORKFLOW.md` - Guide sur les processus Git et CI/CD du projet
-
 ## 📝 Licence
 
 Privé
