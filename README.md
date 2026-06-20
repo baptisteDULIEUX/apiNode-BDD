@@ -74,12 +74,16 @@ Les tests utilisent automatiquement le stage `test` du Dockerfile avec le fichie
 - **Express**
 - **MongoDB 7**
 - **Mongoose**
+- **Swagger / OpenAPI 3.0** (Documentation)
 - **Vitest** (tests)
 - **pnpm** (gestionnaire de paquets)
 
 ## 🛠️ Scripts disponibles
 
 ```bash
+# Lancer le serveur en mode développement
+pnpm run dev
+
 # Build du projet
 pnpm run build
 
@@ -89,8 +93,13 @@ pnpm test
 
 ## 📚 Documentation
 
-- `SETUP_SUMMARY.md` - Récapitulatif complet de la configuration
-- `DOCKER_COMMANDS.md` - Référence des commandes Docker utiles
+L'API est documentée de manière interactive via **Swagger / OpenAPI**.
+
+Une fois l'application démarrée (via Docker ou `pnpm run dev`), la documentation complète et testable de l'API est accessible à l'adresse suivante :
+👉 **[http://localhost:3000/api-docs](http://localhost:3000/api-docs)**
+
+- `TESTS.md` - Explications sur l'architecture et l'exécution des tests
+- `WORKFLOW.md` - Guide sur les processus Git et CI/CD du projet
 
 ## 📝 Licence
 
